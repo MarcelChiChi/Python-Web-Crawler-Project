@@ -1,0 +1,140 @@
+import requests
+from bs4 import BeautifulSoup
+url="https://www.mrhost.com.tw/index.html"
+response=requests.get(url)
+response.encoding='utf-8'
+bs=BeautifulSoup(response.text,'lxml')
+
+
+#先抓取每個地區旅館的所有區塊內容
+listItems = bs.find_all('div', class_='wsite-section-wrap')
+
+
+#將每個地區旅館的區塊分開存取，以利後續分別抓取下方資料
+TaipeiHtml = None
+NewTaipeiHtml = None
+TaoyuanHtml = None
+HsinzhuHtml = None
+TaichungHtml = None
+ChanghuaHtml = None
+NantouHtml = None
+TainanHtml = None
+KaohsiungHtml = None
+HualianHtml = None
+
+for item in listItems:
+  if BeautifulSoup(str(item),'html.parser').text.find('台北防疫旅館') != -1:
+     TaipeiHtml = BeautifulSoup(str(item),'html.parser')
+  elif BeautifulSoup(str(item),'html.parser').text.find('新北防疫旅館') != -1:
+     NewTaipeiHtml = BeautifulSoup(str(item),'html.parser')
+  elif BeautifulSoup(str(item),'html.parser').text.find('桃園防疫旅館') != -1:
+     TaoyuanHtml = BeautifulSoup(str(item),'html.parser')
+  elif BeautifulSoup(str(item),'html.parser').text.find('新竹防疫旅館') != -1:
+     HsinzhuHtml = BeautifulSoup(str(item),'html.parser')
+  elif BeautifulSoup(str(item),'html.parser').text.find('台中防疫旅館') != -1:
+     TaichungHtml = BeautifulSoup(str(item),'html.parser')
+  elif BeautifulSoup(str(item),'html.parser').text.find('彰化防疫旅館') != -1:
+     ChanghuaHtml = BeautifulSoup(str(item),'html.parser')
+  elif BeautifulSoup(str(item),'html.parser').text.find('南投防疫旅館') != -1:
+     NantouHtml = BeautifulSoup(str(item),'html.parser')
+  elif BeautifulSoup(str(item),'html.parser').text.find('台南防疫旅館') != -1:
+     TainanHtml = BeautifulSoup(str(item),'html.parser')    
+  elif BeautifulSoup(str(item),'html.parser').text.find('高雄防疫旅館') != -1:
+     KaohsiungHtml = BeautifulSoup(str(item),'html.parser')     
+  elif BeautifulSoup(str(item),'html.parser').text.find('花蓮防疫旅館') != -1:
+     HualianHtml = BeautifulSoup(str(item),'html.parser')   
+
+
+#在某個地區旅館的區塊中，分別找到每一個旅館的網址，並進入抓取相關資料
+def get_singleHotelHtml(region):
+    """從地區區塊中進入tab-0內的地區推薦頁"""
+    allHotel = region.find('div', class_='tabbed-box-content tab-0')
+    urlBlock=allHotel.find('div', class_='wcustomhtml')
+    url = urlBlock.find('h2').find('font').find('a').get('href')
+    response = requests.get(url)
+    bs=BeautifulSoup(response.text,'lxml')
+    #找到後續需要抓取資料的2個區域-標題區和旅館資訊區
+    titlebox=bs.find('div', class_='colored-box-content')
+    singleHotelHtml=bs.find_all('div', class_='product-grid__item')
+    return titlebox,singleHotelHtml
+
+
+#迴圈抓取每一間旅館的資訊，再分別存入串列
+listRegion=[]   
+listName=[]
+listPrice=[]
+listService=[]
+listURL=[]
+    
+def get_hotel_data(box,hotel):
+    """以各地區html得到旅館資料"""
+    count=0
+    for item in hotel:
+        print("地區：" + box.find('h1', class_='default-font default-transform desktop').text)
+        url = item.find('a').get('href')
+        print("旅館網址：" + url)
+        response = requests.get(url)
+        bs=BeautifulSoup(response.text,'lxml')
+        print("旅館名稱：" + bs.find('h2', class_= 'product-title').text)
+        print("最低房價：" + bs.find('span', class_='wsite-com-product-price-amount').text)
+        print("熱門服務：\n" + bs.find('div', class_= 'paragraph').text)
+        print('='*60)
+        listRegion.append(box.find('h1', class_='default-font default-transform desktop').text)
+        listName.append(bs.find('h2', class_= 'product-title').text)
+        listPrice.append(bs.find('span', class_='wsite-com-product-price-amount').text)
+        listService.append(bs.find('div', class_= 'paragraph').text)
+        listURL.append(url)
+        count = count + 1
+    print(box.find('h1', class_='default-font default-transform desktop').text + "共有：" + str(count)+ "間")
+    print('='*60)
+    return count
+
+#執行函式分別抓取各地旅館資料
+tupleSingle = get_singleHotelHtml(TaipeiHtml)
+TaipeiTotal = get_hotel_data(tupleSingle[0],tupleSingle[1])
+
+tupleSingle = get_singleHotelHtml(NewTaipeiHtml)
+NewTaipeiTotal = get_hotel_data(tupleSingle[0],tupleSingle[1])
+
+tupleSingle = get_singleHotelHtml(TaoyuanHtml)
+TaoyuanTotal = get_hotel_data(tupleSingle[0],tupleSingle[1])
+
+tupleSingle = get_singleHotelHtml(HsinzhuHtml)
+HsinzhuTotal = get_hotel_data(tupleSingle[0],tupleSingle[1])
+
+tupleSingle = get_singleHotelHtml(TaichungHtml)
+TaichungTotal = get_hotel_data(tupleSingle[0],tupleSingle[1])
+
+tupleSingle = get_singleHotelHtml(ChanghuaHtml)
+ChanghuaTotal = get_hotel_data(tupleSingle[0],tupleSingle[1])
+
+tupleSingle = get_singleHotelHtml(NantouHtml)
+NantouTotal = get_hotel_data(tupleSingle[0],tupleSingle[1])
+
+tupleSingle = get_singleHotelHtml(TainanHtml)
+TainanTotal = get_hotel_data(tupleSingle[0],tupleSingle[1])
+
+tupleSingle = get_singleHotelHtml(KaohsiungHtml)
+KaohsiungTotal = get_hotel_data(tupleSingle[0],tupleSingle[1])
+
+tupleSingle = get_singleHotelHtml(HualianHtml)
+HualianTotal = get_hotel_data(tupleSingle[0],tupleSingle[1])
+
+
+#繪製圖表統計各地區旅館數量
+import matplotlib.pyplot as plt
+listx = ['台北','新北','桃園','新竹','台中','彰化','南投','台南','高雄','花蓮']
+listy = [TaipeiTotal, NewTaipeiTotal, TaoyuanTotal,HsinzhuTotal,TaichungTotal, ChanghuaTotal, NantouTotal, TainanTotal, KaohsiungTotal,HualianTotal]
+bar = plt.bar(listx, listy, width=0.5, color='turquoise')
+plt.title("mrhost網站推薦各地防疫旅館數量")
+plt.xlabel("地區")
+plt.ylabel("旅館數量")
+plt.ylim(0,80)
+
+for rect in bar:
+    height = rect.get_height()
+    plt.text(rect.get_x() + rect.get_width() / 2.0, height, f'{height:.0f}', ha='center', va='bottom')
+
+plt.rcParams["font.sans-serif"] = "Microsoft JhengHei"
+plt.rcParams["axes.unicode_minus"] = False
+plt.show()
